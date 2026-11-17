@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pixel Forge · pixel art and sprite animation editor</title>
+    <meta
+      name="description"
+      content="Draw pixel art frame by frame with onion skin and a live preview, then export PNG, sprite sheets and animated GIFs. Saved in your browser."
+    />
+    <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121019" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="skip-link" href="#canvas">Skip to the canvas</a>
+    <header class="topbar">
+      <div class="brand">
+        <span id="brand-mark" class="brand-mark"></span>
+        <span class="brand-name">Pixel Forge</span>
+      </div>
+      <div class="top-actions">
+        <button type="button" class="btn" id="new-btn"><span data-icon="file"></span><span>New</span></button>
+        <span class="divider" aria-hidden="true"></span>
+        <button type="button" class="btn btn-icon" id="undo" aria-label="Undo" title="Undo (Ctrl+Z)"><span data-icon="undo"></span></button>
+        <button type="button" class="btn btn-icon" id="redo" aria-label="Redo" title="Redo (Ctrl+Y)"><span data-icon="redo"></span></button>
+        <span class="save-status" id="save-status" role="status"></span>
+        <button type="button" class="btn btn-primary" id="export-btn"><span data-icon="download"></span><span>Export</span></button>
+        <button type="button" class="btn btn-icon" id="theme" aria-label="Switch to dark theme"></button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <h1 class="sr-only">Pixel Forge</h1>
+      <div class="rail" role="toolbar" aria-label="Drawing tools" aria-orientation="vertical">
+        <div class="rail-group" id="tool-buttons"></div>
+        <span class="rail-sep" aria-hidden="true"></span>
+        <div class="rail-group">
+          <button type="button" class="tool" id="toggle-mirror" aria-pressed="false" aria-label="Mirror drawing" title="Mirror drawing (M)"><span data-icon="mirror"></span></button>
+          <button type="button" class="tool" id="toggle-onion" aria-pressed="true" aria-label="Onion skin" title="Onion skin (O)"><span data-icon="onion"></span></button>
+          <button type="button" class="tool" id="toggle-grid" aria-pressed="true" aria-label="Pixel grid" title="Pixel grid (H)"><span data-icon="grid"></span></button>
+        </div>
+      </div>
+
+      <section class="stage-col" aria-label="Canvas">
+        <div class="example-banner" id="example-banner" hidden>
+          <span class="example-tag">Example</span>
+          <span class="example-text">Bouncing slime, 8 frames. Draw on it, or clear it and start your own.</span>
+          <button type="button" class="btn btn-sm" id="clear-example">Clear example</button>
+        </div>
+        <div class="stage" id="stage">
+          <canvas
+            id="canvas"
+            class="canvas"
+            tabindex="0"
+            aria-label="Drawing canvas. Arrow keys move the cursor, Space or Enter uses the tool, Escape cancels a line or rectangle."
+            aria-describedby="status-pos"
+          ></canvas>
+        </div>
+        <div class="statusbar">
+          <span id="status-pos" aria-live="polite">16 × 16</span>
+          <span class="status-hint">Left click draws · right click erases · Shift fills rectangles</span>
+        </div>
+        <section class="frames" aria-labelledby="frames-title">
+          <div class="frames-head">
+            <h2 class="card-title" id="frames-title">Frames <span class="count" id="frame-count"></span></h2>
+            <div class="frames-actions">
+              <button type="button" class="btn btn-icon btn-sm" id="frame-left" aria-label="Move frame earlier" title="Move earlier"><span data-icon="left"></span></button>
+              <button type="button" class="btn btn-icon btn-sm" id="frame-right" aria-label="Move frame later" title="Move later"><span data-icon="right"></span></button>
+              <button type="button" class="btn btn-icon btn-sm" id="frame-dup" aria-label="Duplicate frame" title="Duplicate frame"><span data-icon="copy"></span></button>
+              <button type="button" class="btn btn-icon btn-sm" id="frame-del" aria-label="Delete frame" title="Delete frame"><span data-icon="trash"></span></button>
+              <button type="button" class="btn btn-sm" id="frame-add"><span data-icon="plus"></span><span>Frame</span></button>
+            </div>
+          </div>
+          <ol class="frame-list" id="frame-list" aria-label="Animation frames"></ol>
+        </section>
+      </section>
+
+      <aside class="side">
+        <section class="card" aria-labelledby="colour-title">
+          <h2 class="card-title" id="colour-title">Colour</h2>
+          <div class="colour-row">
+            <label class="current-swatch" for="colour-input" title="Pick any colour">
+              <span class="sr-only">Pick any colour</span>
+              <input type="color" id="colour-input" />
+              <span class="current-fill" id="current-fill"></span>
+            </label>
+            <div class="colour-fields">
+              <label for="hex-input" class="field-label">Hex</label>
+              <input type="text" id="hex-input" class="text-input mono" spellcheck="false" autocomplete="off" maxlength="7" />
+            </div>
+            <button type="button" class="btn btn-icon btn-sm" id="add-colour" aria-label="Add colour to My palette" title="Add to My palette"><span data-icon="plus"></span></button>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="palette-title">
+          <div class="card-head">
+            <h2 class="card-title" id="palette-title">Palette</h2>
+            <label class="sr-only" for="palette-select">Palette</label>
+            <select id="palette-select" class="select"></select>
+          </div>
+          <div class="swatches" id="swatches" role="group" aria-label="Palette colours"></div>
+          <p class="palette-note" id="palette-note"></p>
+        </section>
+
+        <section class="card preview-card" aria-labelledby="preview-title">
+          <div class="card-head">
+            <h2 class="card-title" id="preview-title">Preview</h2>
+            <button type="button" class="btn btn-icon btn-sm" id="play" aria-label="Pause preview" title="Play or pause (P)"></button>
+          </div>
+          <div class="preview-box">
+            <canvas id="preview" class="preview-canvas" role="img" aria-label="Animated preview"></canvas>
+          </div>
+          <div class="fps-row">
+            <label for="fps">Speed</label>
+            <input type="range" id="fps" min="1" max="24" step="1" />
+            <output id="fps-out" for="fps"></output>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <dialog class="dialog" id="export-dialog" aria-labelledby="export-title">
+      <form method="dialog" class="dialog-body" id="export-form">
+        <div class="dialog-head">
+          <h2 id="export-title">Export</h2>
+          <button type="submit" value="cancel" class="btn btn-icon btn-sm btn-ghost" aria-label="Close"><span data-icon="close"></span></button>
+        </div>
+        <fieldset class="choices">
+          <legend class="field-label">Format</legend>
+          <label class="choice"><input type="radio" name="format" value="png" checked /><span><strong>PNG</strong><small>The current frame</small></span></label>
+          <label class="choice"><input type="radio" name="format" value="sheet" /><span><strong>Sprite sheet</strong><small>Every frame in a grid, PNG</small></span></label>
+          <label class="choice"><input type="radio" name="format" value="gif" /><span><strong>Animated GIF</strong><small>Loops at the preview speed</small></span></label>
+        </fieldset>
+        <div class="field">
+          <label for="export-scale" class="field-label">Scale</label>
+          <select id="export-scale" class="select">
+            <option value="1">1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+            <option value="8" selected>8×</option>
+            <option value="16">16×</option>
+          </select>
+        </div>
+        <p class="export-size" id="export-size"></p>
+        <div class="dialog-actions">
+          <button type="submit" value="cancel" class="btn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="export-go"><span data-icon="download"></span><span>Download</span></button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="dialog" id="new-dialog" aria-labelledby="new-title">
+      <form method="dialog" class="dialog-body">
+        <div class="dialog-head">
+          <h2 id="new-title">New canvas</h2>
+          <button type="submit" value="cancel" class="btn btn-icon btn-sm btn-ghost" aria-label="Close"><span data-icon="close"></span></button>
+        </div>
+        <div class="field">
+          <label for="new-size" class="field-label">Size in pixels</label>
+          <select id="new-size" class="select"></select>
+        </div>
+        <p class="dialog-text">Start blank replaces every frame. Resize keeps your drawing, centred.</p>
+        <div class="dialog-actions">
+          <button type="submit" value="resize" class="btn">Resize, keep drawing</button>
+          <button type="submit" value="blank" class="btn btn-primary">Start blank</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
